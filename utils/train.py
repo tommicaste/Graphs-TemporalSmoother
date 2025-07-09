@@ -6,19 +6,7 @@ from tqdm import tqdm
 
 def train_model(model, train_loader, test_loader, lr=0.001, tol=1e-4, num_epochs=100, checkpoint_path=None):
     """
-    Trains the given model using the provided data loaders.
-    
-    Args:
-        model  The model to train.
-        train_loader : list of training batches.
-        test_loader : list of testing batches.
-        lr : Learning rate.
-        tol : Tolerance for stopping criterion.
-        num_epochs : Maximum number of epochs.
-        checkpoint_path : Path to save/load model checkpoints.
-        
-    Returns:
-        The trained model.
+    Trains the given model using the provided data loaders
     """
     
     if checkpoint_path is None:
@@ -96,4 +84,20 @@ def train_model(model, train_loader, test_loader, lr=0.001, tol=1e-4, num_epochs
             break
         prev_loss = avg_loss
     
-    return model
+    return 
+
+def evaluate_model(model, test_loader):
+    model.eval()
+    test_correct = 0
+    test_total = 0
+    loss_fn = nn.CrossEntropyLoss()
+    with torch.no_grad():
+        for batch in test_loader:
+            snapshots = batch.to_data_list()
+            outputs = model(snapshots).unsqueeze(0)
+            labels = batch[0].y
+            pred = outputs.argmax(dim=1)
+            test_correct += (pred == labels).sum().item()
+            test_total += labels.size(0)
+    accuracy = test_correct / test_total if test_total > 0 else 0.0
+    return accuracy

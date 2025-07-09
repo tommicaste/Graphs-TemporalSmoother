@@ -13,24 +13,17 @@ import torch.optim as optim
 
 class SpatialConvLayer(nn.Module):
     """
-    Spatial custom convolution layer to take multiple convolution options
+    Spatial convolution layer to take multiple convolution options
     """
     def __init__(self, in_channels, out_channels, conv_operator, activation=nn.ReLU()):
-        """
-        Args:
-            in_channels : Dimension of the input node features
-            out_channels : Dimension of the output node features
-            conv_operator : GNN operator
-            activation : Defaults to ReLU()
-        """
         super(SpatialConvLayer, self).__init__()
         self.conv = conv_operator(in_channels, out_channels)
         self.activation = activation
 
     def forward(self, x, edge_index):
-        # Apply the chosen graph convolution operator
+        
         x = self.conv(x, edge_index)
-        # Apply the activation function
+
         if self.activation is not None:
             x = self.activation(x)
         return x
@@ -48,17 +41,11 @@ class TemporalTransformer(nn.Module):
         self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
     
     def forward(self, H_tilde, H_prev):
-        """
-        Args:
-            H_tilde : New embeddings at time t, shape [N, embed_dim]
-            H_prev : Embeddings from time t-1, shape [N, embed_dim]
-        Returns:
-            H_out : Fused embeddings, shape [N, embed_dim]
-        """
-        # Stack H_prev and H_tilde along the sequence dimension.
+
+        
         x = torch.stack([H_prev, H_tilde], dim=1)
         
-        # Apply the transformer
+        
         out = self.transformer(x)
         
         H_out = out.mean(dim=1)
@@ -67,13 +54,6 @@ class TemporalTransformer(nn.Module):
 
 
 class DynamicSpatialTemporalClassifier(nn.Module):
-    """
-    A joint model that:
-      1) Processes a sequence of snapshots via multiple (Conv -> Transformer) layers
-         to produce final node embeddings for the last snapshot
-      2) Pools the final node embeddings and passes the pooled vector through an MLP
-         to output class logits
-    """
     def __init__(
         self,
         in_channels,        
@@ -87,7 +67,7 @@ class DynamicSpatialTemporalClassifier(nn.Module):
     ):
         super(DynamicSpatialTemporalClassifier, self).__init__()
         
-        # attention head per layer
+        
         if attn_heads is None:
             attn_heads = [1] * len(embedding_sizes)
         if len(attn_heads) < len(embedding_sizes):
@@ -98,7 +78,7 @@ class DynamicSpatialTemporalClassifier(nn.Module):
         self.layers_attn = nn.ModuleList()
         current_in = in_channels
         
-        # build the convolution layers 
+
         for i, out_dim in enumerate(embedding_sizes):
             self.layers_conv.append(
                 SpatialConvLayer(
@@ -113,10 +93,10 @@ class DynamicSpatialTemporalClassifier(nn.Module):
             )
             current_in = out_dim
         
-        # Classification head
+        
         self.pooling = pooling
         mlp_layers = []
-        prev_dim = embedding_sizes[-1]  # Final embedding dimension.
+        prev_dim = embedding_sizes[-1]  
         for hidden_dim in mlp_sizes:
             mlp_layers.append(nn.Linear(prev_dim, hidden_dim))
             mlp_layers.append(activation())
@@ -125,27 +105,21 @@ class DynamicSpatialTemporalClassifier(nn.Module):
         self.output_layer = nn.Linear(prev_dim, num_classes)
 
     def forward(self, snapshots):
-        """
-        Args:
-            snapshots: List of PyGeometric Data objects 
-        Returns:
-            logits : Classification logits with shape [1, num_classes]
-        """
-        # Initialize previous embeddings for each layer.
+        
         prev_embeddings = [None] * self.num_layers
         
-        # Process snapshots in chronological order.
+        
         for t, data in enumerate(snapshots):
             x = data.x
             edge_index = data.edge_index
-            # Process through each layer.
+            
             for i in range(self.num_layers):
                 
                 tilde = self.layers_conv[i](x, edge_index)
                 
-                if t == 0: # for t = 0
+                if t == 0:
                     h = tilde
-                else:# for t>0 
+                else:
                     h = self.layers_attn[i](tilde, prev_embeddings[i])
                 x = h
                 prev_embeddings[i] = h
@@ -154,7 +128,7 @@ class DynamicSpatialTemporalClassifier(nn.Module):
             pooled = x.mean(dim=0) 
         elif self.pooling == 'max':
             pooled, _ = x.max(dim=0) 
-        pooled = pooled.unsqueeze(0)  # [1, embed_dim]
-        h_mlp = self.mlp(pooled)       # [1, mlp_last]
-        logits = self.output_layer(h_mlp)  # [1, num_classes]
+        pooled = pooled.unsqueeze(0)  
+        h_mlp = self.mlp(pooled)      
+        logits = self.output_layer(h_mlp)
         return logits

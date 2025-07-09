@@ -20,7 +20,6 @@ class DynamicGNN(nn.Module):
         for i in range(0, num_layers - 1):
             self.convs.append(GCNConv(hidden_channels, hidden_channels))
         
-        # self.input_dim = input_dim
         self.hidden_dim = hidden_dim
         self.multihead_attn = nn.MultiheadAttention(hidden_channels, num_heads)
         self.layer_norm1 = nn.LayerNorm(hidden_channels)

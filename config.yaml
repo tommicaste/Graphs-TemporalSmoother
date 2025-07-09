@@ -1,0 +1,55 @@
+datasets:
+  gender: DynHCPGender   
+  age: DynHCPAge        
+
+training:
+  batch_size: 1        
+  lr: 0.001
+  num_epochs: 100
+  tol: 1e-4
+
+models:
+  tempsmooth_gender:
+    type: DynamicSpatialTemporalClassifier
+    params:
+      in_channels: 100
+      embedding_sizes: [64]
+      mlp_sizes: [32]
+      num_classes: 2
+      conv_operator: GCNConv
+      attn_heads: [1]
+      activation: ReLU
+      pooling: mean
+  tempsmooth_age:
+    type: DynamicSpatialTemporalClassifier
+    params:
+      in_channels: 100
+      embedding_sizes: [64]
+      mlp_sizes: [32, 16]
+      num_classes: 3
+      conv_operator: GCNConv
+      attn_heads: [2]
+      activation: ReLU
+      pooling: mean
+  neuro_gender:
+    type: DynamicGNN
+    params:
+      input_dim: 100
+      hidden_channels: 64
+      hidden_dim: 128
+      num_heads: 8
+      num_layers: 3
+      GNN: GCNConv
+      dropout: 0.2
+      num_classes: 2
+  neuro_age:
+    type: DynamicGNN
+    params:
+      input_dim: 100
+      hidden_channels: 64
+      hidden_dim: 64
+      num_heads: 4
+      num_layers: 3
+      GNN: GCNConv
+      dropout: 0.2
+      num_classes: 2 
