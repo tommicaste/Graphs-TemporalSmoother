@@ -15,7 +15,6 @@ def train_model(model, train_loader, test_loader, lr=0.001, tol=1e-4, num_epochs
     optimizer = optim.Adam(model.parameters(), lr=lr)
     loss_fn = nn.CrossEntropyLoss()
     
-    # Resume training if checkpoint exists.
     if os.path.exists(checkpoint_path):
         checkpoint = torch.load(checkpoint_path)
         model.load_state_dict(checkpoint["model_state_dict"])
@@ -52,7 +51,7 @@ def train_model(model, train_loader, test_loader, lr=0.001, tol=1e-4, num_epochs
         train_accuracy = correct / total if total > 0 else 0.0
         print(f"Epoch {epoch+1}: Train Loss = {avg_loss:.6f}, Train Accuracy = {train_accuracy:.4f}")
         
-        # Evaluate on test set.
+    
         model.eval()
         test_loss = 0.0
         test_correct = 0
@@ -71,7 +70,6 @@ def train_model(model, train_loader, test_loader, lr=0.001, tol=1e-4, num_epochs
         test_accuracy = test_correct / test_total if test_total > 0 else 0.0
         print(f"Epoch {epoch+1}: Test Loss = {avg_test_loss:.6f}, Test Accuracy = {test_accuracy:.4f}")
         
-        # Save checkpoint.
         torch.save({
             "epoch": epoch,
             "model_state_dict": model.state_dict(),
